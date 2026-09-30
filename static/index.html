@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f2f4ee">
+    <meta name="description" content="A simple task list that shows how a web page talks to a Python app.">
+    <title>Taskroom | Learn FastAPI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/app.js" defer></script>
+</head>
+<body>
+    <a class="skip-link" href="#tasks">Skip to task list</a>
+    <header class="topbar">
+        <a class="brand" href="/" aria-label="Taskroom home">
+            <span class="brand-mark" aria-hidden="true">T</span>
+            <span>taskroom <span class="brand-divider">/</span> learn FastAPI</span>
+        </a>
+        <div class="topbar-actions">
+            <span class="server-state"><span class="live-dot" aria-hidden="true"></span><span id="connection-label">Connecting</span></span>
+            <a class="docs-link" href="/docs" target="_blank" rel="noreferrer">See the API guide <span aria-hidden="true">↗</span></a>
+        </div>
+    </header>
+
+    <main class="page-shell">
+        <section class="intro" aria-labelledby="page-title">
+            <div class="intro-copy">
+                <p class="eyebrow"><span>FASTAPI</span><span class="eyebrow-rule"></span> LEARN BY TRYING</p>
+                <h1 id="page-title">Make a list.<br><span>See how it works.</span></h1>
+                <p class="intro-text">FastAPI helps this web page talk to a Python program. Add a task and watch the message go there and the answer come back.</p>
+            </div>
+            <div class="intro-stamp" aria-label="Two methods, one small app">
+                <span class="stamp-number">02</span>
+                <span class="stamp-caption">simple ways<br>to talk to the app</span>
+            </div>
+        </section>
+
+        <section class="learning-strip" aria-label="Methods used by this app">
+            <div class="method-explainer">
+                <span class="method-label get-label">GET</span>
+                <span><strong>Ask: show my tasks</strong><code>GET /api/tasks</code></span>
+            </div>
+            <span class="strip-divider" aria-hidden="true"></span>
+            <div class="method-explainer">
+                <span class="method-label put-label">PUT</span>
+                <span><strong>Tell: save this task</strong><code>PUT /api/tasks/{id}</code></span>
+            </div>
+            <p class="strip-note">Try adding a task or ticking a box. Watch the answer below.</p>
+        </section>
+
+        <div class="workbench">
+            <section class="task-area" id="tasks" aria-labelledby="tasks-heading">
+                <header class="section-heading">
+                    <div>
+                        <p class="section-kicker">YOUR LIST</p>
+                        <h2 id="tasks-heading">Tasks <span id="task-count" class="count-bubble">0</span></h2>
+                    </div>
+                    <button class="refresh-button" id="refresh-button" type="button" title="Ask the app to show your tasks again">Show tasks again <span aria-hidden="true">↻</span></button>
+                </header>
+
+                <form class="add-form" id="add-form">
+                    <label class="visually-hidden" for="task-input">Write a task</label>
+                    <input id="task-input" name="title" type="text" maxlength="80" placeholder="Write one thing to do..." autocomplete="off" required>
+                    <button type="submit">Save task <span aria-hidden="true">+</span></button>
+                </form>
+
+                <div class="list-toolbar">
+                    <div class="filters" role="group" aria-label="Filter tasks">
+                        <button class="filter-button is-selected" type="button" data-filter="all" aria-pressed="true">All</button>
+                        <button class="filter-button" type="button" data-filter="open" aria-pressed="false">To do</button>
+                        <button class="filter-button" type="button" data-filter="done" aria-pressed="false">Done</button>
+                    </div>
+                    <span class="list-hint" id="list-hint">Loading tasks...</span>
+                </div>
+
+                <ul class="task-list" id="task-list" aria-live="polite" aria-busy="true"></ul>
+                <p class="storage-note"><span class="note-dot" aria-hidden="true"></span> Practice tasks go away when the app stops.</p>
+            </section>
+
+            <aside class="request-panel" aria-labelledby="trace-heading">
+                <header class="trace-heading">
+                    <div>
+                        <p class="section-kicker">WATCH THE MESSAGE</p>
+                        <h2 id="trace-heading">What the app says</h2>
+                    </div>
+                    <span class="trace-live">LIVE</span>
+                </header>
+
+                <div class="route-guide">
+                    <div class="route-row">
+                        <span class="method-label get-label">GET</span>
+                        <div><code>GET /api/tasks</code><p>Asks, "What tasks do I have?"</p></div>
+                    </div>
+                    <div class="route-row">
+                        <span class="method-label put-label">PUT</span>
+                        <div><code>PUT /api/tasks/{id}</code><p>Tells the app, "Save this task."</p></div>
+                    </div>
+                </div>
+
+                <section class="response-view" aria-labelledby="response-heading">
+                    <div class="response-topline">
+                        <h3 id="response-heading">The app's answer</h3>
+                        <span class="response-status" id="response-status">WAITING</span>
+                    </div>
+                    <p class="request-url" id="request-url">Loading your tasks...</p>
+                    <pre class="response-json" id="response-json" aria-live="polite">The app's answer will show here.</pre>
+                </section>
+
+                <a class="docs-callout" href="/docs" target="_blank" rel="noreferrer">
+                    <span><strong>Want to try it yourself?</strong><small>Open the page with the API buttons</small></span>
+                    <span class="callout-arrow" aria-hidden="true">↗</span>
+                </a>
+            </aside>
+        </div>
+
+        <section class="flask-lesson" aria-labelledby="flask-heading">
+            <div class="flask-lesson-copy">
+                <p class="section-kicker">ANOTHER PYTHON HELPER</p>
+                <h2 id="flask-heading">How Flask works</h2>
+                <p class="flask-intro">Flask helps a web page talk to a Python program. It listens for a message, finds the matching Python function, then sends the answer back.</p>
+                <ol class="flask-steps">
+                    <li><span class="step-number">1</span><span><strong>The page asks</strong><small><code>GET /tasks</code> means "show me the tasks."</small></span></li>
+                    <li><span class="step-number">2</span><span><strong>Flask finds the right job</strong><small>It runs the function marked with <code>@app.get("/tasks")</code>.</small></span></li>
+                    <li><span class="step-number">3</span><span><strong>The function answers</strong><small><code>jsonify</code> packs Python data so the page can read it.</small></span></li>
+                </ol>
+                <p class="flask-note">This Taskroom uses FastAPI instead. Flask and FastAPI are different tools that can do similar jobs.</p>
+            </div>
+            <div class="flask-code-area">
+                <p class="section-kicker">A TINY FLASK EXAMPLE</p>
+                <pre class="response-json flask-example"><code>from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+@app.get("/tasks")
+def show_tasks():
+    return jsonify({"task": "Read a book"})</code></pre>
+                <p class="flask-code-caption">When the page asks for <code>/tasks</code>, Flask runs <code>show_tasks</code>.</p>
+            </div>
+        </section>
+
+        <section class="docker-lesson flask-lesson" aria-labelledby="docker-heading">
+            <div class="flask-lesson-copy">
+                <p class="section-kicker">THE APP'S LUNCHBOX</p>
+                <h2 id="docker-heading">How Docker runs this page</h2>
+                <p class="flask-intro">Docker packs the app so it can run the same way on different computers. Here is what each Docker word means:</p>
+                <ol class="flask-steps">
+                    <li><span class="step-number">1</span><span><strong>Dockerfile = recipe</strong><small>It tells Docker what to put together.</small></span></li>
+                    <li><span class="step-number">2</span><span><strong>Image = packed app</strong><small>The image is named <code>taskroom</code>.</small></span></li>
+                    <li><span class="step-number">3</span><span><strong>Container = app running now</strong><small>This container is named <code>taskroom-demo</code>.</small></span></li>
+                    <li><span class="step-number">4</span><span><strong>Ports = two doors</strong><small>Your browser uses 8001; Docker sends it to the app's 8000.</small></span></li>
+                </ol>
+                <p class="flask-note">Docker Desktop shows the same container under <strong>Containers</strong>. Click its name to see its logs.</p>
+            </div>
+            <div class="flask-code-area">
+                <p class="section-kicker">CHECK WHAT IS HAPPENING</p>
+                <pre class="response-json docker-commands"><code>docker ps
+docker logs taskroom-demo
+docker stop taskroom-demo</code></pre>
+                <p class="flask-code-caption"><code>docker ps</code> shows what is running. <code>docker logs</code> shows its messages. <code>docker stop</code> stops it.</p>
+                <p class="section-kicker docker-start-label">START THIS APP AGAIN</p>
+                <pre class="response-json docker-commands"><code>docker run --rm -d --name taskroom-demo -p 8001:8000 taskroom</code></pre>
+                <p class="flask-code-caption">If you change the app, first rebuild it with <code>docker build -t taskroom .</code>.</p>
+            </div>
+        </section>
+
+        <footer class="page-footer"><span>BUILT WITH FASTAPI</span><span>You click <span aria-hidden="true">→</span> the app gets a message <span aria-hidden="true">→</span> it sends an answer</span></footer>
+    </main>
+</body>
+</html>
