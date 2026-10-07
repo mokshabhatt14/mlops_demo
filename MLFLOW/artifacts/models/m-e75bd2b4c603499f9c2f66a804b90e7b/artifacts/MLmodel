@@ -1,0 +1,23 @@
+artifact_path: file:///C:/Users/ISE-IOTLAB/Desktop/Mok087/mlops_demo/MLFLOW/artifacts/models/m-e75bd2b4c603499f9c2f66a804b90e7b/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.14.7
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.9.1
+    skops_trusted_types: null
+mlflow_version: 3.16.1
+model_id: m-e75bd2b4c603499f9c2f66a804b90e7b
+model_size_bytes: 5856
+model_uuid: m-e75bd2b4c603499f9c2f66a804b90e7b
+prompts: null
+run_id: b84b78f117de4cc5b049a9e8f26ee778
+utc_time_created: '2026-10-07 05:48:03.076644'
