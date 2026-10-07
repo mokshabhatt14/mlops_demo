@@ -16,6 +16,11 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+@app.get("/health", tags=["Health"], summary="Check whether the API is running")
+def health():
+    return {"status": "ok"}
+
+
 class TaskInput(BaseModel):
     title: str = Field(min_length=1, max_length=80, strip_whitespace=True, description="The task to save.")
     completed: bool = Field(default=False, description="True when the task is finished.")
