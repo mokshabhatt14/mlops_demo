@@ -11,7 +11,7 @@ STATIC_DIR = BASE_DIR / "static"
 app = FastAPI(
     title="Taskroom API",
     description="A tiny task app for learning how a web page talks to a Python program.",
-    version="1.0.0",
+    version="1.0.1",
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
@@ -19,6 +19,11 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 @app.get("/health", tags=["Health"], summary="Check whether the API is running")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/version", tags=["Health"], summary="Get the app version")
+def get_version():
+    return {"name": app.title, "version": app.version}
 
 
 class TaskInput(BaseModel):
