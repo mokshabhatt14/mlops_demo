@@ -11,7 +11,7 @@ STATIC_DIR = BASE_DIR / "static"
 app = FastAPI(
     title="Taskroom API",
     description="A tiny task app for learning how a web page talks to a Python program.",
-    version="1.0.1",
+    version="1.0.2",
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
