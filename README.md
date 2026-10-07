@@ -13,7 +13,7 @@ Open `http://127.0.0.1:8000` for the task list. Add a task or tick its box, then
 
 ## Publish the Docker image
 
-When you push a commit to GitHub, the workflow builds the Docker image and pushes it to Docker Hub as `YOUR_USERNAME/taskroom:latest` and with a tag for that commit. It runs for pushes to any branch.
+When you push a commit to GitHub, the workflow builds the Docker image and pushes it to Docker Hub as `moksha087/taskroom:latest` and with a tag for that commit. It runs for pushes to any branch.
 
 Before the first push, add these repository secrets under **Settings > Secrets and variables > Actions**:
 
@@ -21,6 +21,15 @@ Before the first push, add these repository secrets under **Settings > Secrets a
 - `DOCKERHUB_TOKEN`: a Docker Hub access token.
 
 Find the build result in the repository's **Actions** tab. Saving changes locally does not start a build; commit and push them to GitHub.
+
+To run the published image locally:
+
+```bash
+docker pull moksha087/taskroom:latest
+docker run --rm -p 8000:8000 moksha087/taskroom:latest
+```
+
+Then open `http://127.0.0.1:8000`.
 
 ## Two messages
 
