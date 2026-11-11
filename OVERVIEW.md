@@ -227,14 +227,18 @@ server directly to the public internet.
 
 ## Use the Streamlit web interface
 
-The Streamlit app uses plain-language questions instead of requiring you to
-know the model's column names. Choose a nearby California city to fill in its
-approximate location, enter yearly household income in dollars and the typical
-age of homes, and optionally expand the additional neighborhood details. The
-app converts income to the units expected by the model, displays the estimated
-median value in US dollars, and lets you review the values used for the
-prediction. It loads the bundled model, so it doesn't need the MLflow tracking
-database or a dataset download to make predictions.
+The Streamlit app opens with an interactive California map: click a city marker
+or choose a city from the list. A small animated house and dog appear next;
+open or close the door and adjust the bedroom, bathroom, kitchen, and floor
+sliders to customize the scene. The app asks for neighborhood income and home
+age before estimating its median home value in dollars.
+
+The model was trained on neighborhood statistics, not individual home layouts.
+Bedroom count is used as an approximate bedroom input, and bedroom, bathroom,
+and kitchen counts are combined into a rough room-count input. The number of
+floors changes the illustration only, not the prediction. The app explains
+these limitations next to the estimate. It loads the bundled model, so it
+doesn't need the MLflow tracking database or a dataset download to predict.
 
 With the virtual environment activated, install requirements and start the
 app:

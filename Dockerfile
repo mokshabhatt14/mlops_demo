@@ -13,7 +13,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
 
 RUN useradd --create-home --uid 10001 appuser
 
-COPY --chown=appuser:appuser app.py streamlit_app.py .
+COPY --chown=appuser:appuser app.py streamlit_app.py ui_helpers.py .
 COPY --chown=appuser:appuser models/california_housing ./models/california_housing
 
 USER appuser

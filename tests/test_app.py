@@ -5,6 +5,7 @@ from flask.testing import FlaskClient
 from streamlit.testing.v1 import AppTest
 
 from app import create_app
+from ui_helpers import build_model_features, make_house_scene
 
 
 class PredictionApiTests(unittest.TestCase):
@@ -57,27 +58,69 @@ class PredictionApiTests(unittest.TestCase):
         response = self.client.post("/predict", json={"instances": [instance]})
         self.assertEqual(response.status_code, 400)
 
-    def test_streamlit_form_displays_prediction(self):
+    def test_house_details_build_model_features(self):
+        features = build_model_features(
+            income_dollars=90_000,
+            house_age=12,
+            bedrooms=4,
+            bathrooms=3,
+            kitchens=2,
+            population=500,
+            occupancy=2.5,
+            latitude=36.0,
+            longitude=-120.0,
+        )
+        self.assertEqual(
+            list(features.columns),
+            [
+                "MedInc",
+                "HouseAge",
+                "AveRooms",
+                "AveBedrms",
+                "Population",
+                "AveOccup",
+                "Latitude",
+                "Longitude",
+            ],
+        )
+        self.assertEqual(features.iloc[0]["MedInc"], 9)
+        self.assertEqual(features.iloc[0]["AveRooms"], 10)
+        self.assertEqual(features.iloc[0]["AveBedrms"], 4)
+
+    def test_house_animation_shows_dog_and_door_state(self):
+        scene = make_house_scene(4, 3, 2, 2, True)
+        self.assertIn("Your dog says hi!", scene)
+        self.assertIn("4 bedrooms", scene)
+        self.assertIn("Door open", scene)
+        self.assertIn("prefers-reduced-motion", scene)
+
+    def test_streamlit_house_designer_displays_prediction(self):
         app_test = AppTest.from_file(
             str(Path(__file__).resolve().parents[1] / "streamlit_app.py"),
             default_timeout=90,
         ).run()
         self.assertFalse(app_test.exception)
-        income = next(
-            item
-            for item in app_test.number_input
-            if item.label == "Typical yearly household income ($)"
+        self.assertEqual(
+            next(
+                item
+                for item in app_test.number_input
+                if item.label == "Typical yearly household income"
+            ).value,
+            83_000,
         )
-        self.assertEqual(income.value, 83000)
+        self.assertEqual(len(app_test.slider), 4)
         submit_index = next(
             index
             for index, button in enumerate(app_test.button)
-            if button.label == "Estimate neighborhood value"
+            if button.label == "✨ Estimate neighborhood home value"
         )
         app_test.button[submit_index].click().run(timeout=90)
         self.assertFalse(app_test.exception)
         self.assertTrue(
-            any(metric.label == "Estimated value" for metric in app_test.metric)
+            any(
+                "estimated median home value" in message.value.lower()
+                for message in app_test.success
+            )
         )
 
 

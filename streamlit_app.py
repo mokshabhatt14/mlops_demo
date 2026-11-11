@@ -1,23 +1,15 @@
-"""Friendly Streamlit interface for the California Housing model."""
+"""Interactive California home value estimator with a map and animated house."""
 
 from pathlib import Path
 
 import mlflow.pyfunc
 import pandas as pd
+import pydeck as pdk
 import streamlit as st
+from ui_helpers import FEATURES, build_model_features, make_house_scene
 
 
 MODEL_PATH = Path(__file__).resolve().parent / "models" / "california_housing"
-FEATURES = (
-    "MedInc",
-    "HouseAge",
-    "AveRooms",
-    "AveBedrms",
-    "Population",
-    "AveOccup",
-    "Latitude",
-    "Longitude",
-)
 LOCATIONS = {
     "San Francisco": (37.77, -122.42),
     "Los Angeles": (34.05, -118.24),
@@ -25,7 +17,8 @@ LOCATIONS = {
     "Sacramento": (38.58, -121.49),
     "Oakland": (37.80, -122.27),
     "Fresno": (36.74, -119.79),
-    "Enter a different location": None,
+    "Bakersfield": (35.37, -119.02),
+    "Monterey": (36.60, -121.89),
 }
 
 
@@ -35,183 +28,205 @@ def load_model():
 
 
 st.set_page_config(
-    page_title="California Home Value Estimator",
+    page_title="Little California Home",
     page_icon="🏡",
-    layout="centered",
+    layout="wide",
 )
 
-st.title("🏡 California Home Value Estimator")
+st.title("🏡 Find a place for your little California home")
 st.markdown(
-    "Get a quick estimate for a **neighborhood**, not an individual house. "
-    "Start with the three details below. You can add more information if you "
-    "have it."
+    "First pick a place on the map. Then meet your dog, open the door, and "
+    "make the house your own."
 )
 
-with st.container(border=True):
-    st.subheader("1. Where is the neighborhood?")
-    city = st.selectbox(
-        "Choose the closest city",
-        options=list(LOCATIONS),
-        help=(
-            "The city gives the model an approximate location. Choose the "
-            "closest city, or enter coordinates for another California location."
-        ),
-    )
-    coordinates = LOCATIONS[city]
-    if coordinates is None:
-        location_col1, location_col2 = st.columns(2)
-        with location_col1:
-            latitude = st.number_input(
-                "Location latitude",
-                min_value=32.0,
-                max_value=42.5,
-                value=37.77,
-                step=0.01,
-                format="%.2f",
-                help="California is roughly between 32 and 42.5 degrees north.",
-            )
-        with location_col2:
-            longitude = st.number_input(
-                "Location longitude",
-                min_value=-125.0,
-                max_value=-113.0,
-                value=-122.42,
-                step=0.01,
-                format="%.2f",
-                help="California is roughly between 125 and 113 degrees west.",
-            )
-    else:
-        latitude, longitude = coordinates
-        st.caption(f"Approximate location: {latitude:.2f}, {longitude:.2f}")
+if "selected_city" not in st.session_state:
+    st.session_state.selected_city = "San Francisco"
+if "last_map_city" not in st.session_state:
+    st.session_state.last_map_city = None
+if "door_open" not in st.session_state:
+    st.session_state.door_open = False
 
-with st.form("prediction_form"):
-    with st.container(border=True):
-        st.subheader("2. Two details about the neighborhood")
-        st.caption(
-            "Estimates are fine. Leave the starting examples or change them."
-        )
-        income = st.number_input(
-            "Typical yearly household income ($)",
-            min_value=0,
-            max_value=200_000,
-            value=83_000,
-            step=1_000,
-            format="%d",
-            help="Enter an approximate yearly amount in dollars. For example, enter 85,000 for $85,000.",
-        )
-        house_age = st.number_input(
-            "Typical age of homes (years)",
-            min_value=1.0,
-            max_value=100.0,
-            value=21.0,
-            step=1.0,
-            help="About how old are homes in this neighborhood?",
-        )
-
-        with st.expander("Add more neighborhood details (optional)"):
-            st.caption(
-                "Don't know these numbers? Leave the example values as they "
-                "are. These are averages for the area, not your own home."
-            )
-            extra_col1, extra_col2 = st.columns(2)
-            with extra_col1:
-                average_rooms = st.number_input(
-                    "Average rooms per household",
-                    min_value=0.0,
-                    max_value=150.0,
-                    value=6.9,
-                    step=0.1,
-                    help="Approximate average number of rooms, including bedrooms.",
-                )
-                population = st.number_input(
-                    "People in the local area",
-                    min_value=0.0,
-                    max_value=40000.0,
-                    value=240.0,
-                    step=10.0,
-                    help="Approximate population of the small surrounding area.",
-                )
-            with extra_col2:
-                average_bedrooms = st.number_input(
-                    "Average bedrooms per household",
-                    min_value=0.0,
-                    max_value=40.0,
-                    value=1.1,
-                    step=0.1,
-                    help="Approximate average number of bedrooms.",
-                )
-                average_occupancy = st.number_input(
-                    "Average people per household",
-                    min_value=0.01,
-                    max_value=1500.0,
-                    value=2.1,
-                    step=0.1,
-                    help="Approximate number of people living in each household.",
-                )
-
-        submitted = st.form_submit_button(
-            "Estimate neighborhood value",
-            type="primary",
-            width="stretch",
-        )
-
-if submitted:
-    model = load_model()
-    values = [
-        income / 10_000,
-        house_age,
-        average_rooms,
-        average_bedrooms,
-        population,
-        average_occupancy,
-        latitude,
-        longitude,
+st.subheader("1. Pick a place on the map")
+st.caption("Click a dot on the map, or choose a city from the list below.")
+map_data = pd.DataFrame(
+    [
+        {"city": city, "latitude": coordinates[0], "longitude": coordinates[1]}
+        for city, coordinates in LOCATIONS.items()
     ]
-    features = pd.DataFrame(
-        [[float(value) for value in values]],
-        columns=FEATURES,
-    )
-    prediction = float(model.predict(features)[0])
-    estimated_value = prediction * 100_000
+)
+selected_coordinates = LOCATIONS[st.session_state.selected_city]
+map_layer = pdk.Layer(
+    "ScatterplotLayer",
+    id="cities",
+    data=map_data,
+    get_position="[longitude, latitude]",
+    get_radius=11_000,
+    get_fill_color=[53, 126, 91, 220],
+    get_line_color=[255, 255, 255, 255],
+    line_width_min_pixels=2,
+    pickable=True,
+    auto_highlight=True,
+)
+map_deck = pdk.Deck(
+    layers=[map_layer],
+    initial_view_state=pdk.ViewState(
+        latitude=selected_coordinates[0],
+        longitude=selected_coordinates[1],
+        zoom=5.2,
+        pitch=0,
+    ),
+    map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+    tooltip={"text": "{city}"},
+)
+map_event = st.pydeck_chart(
+    map_deck,
+    height=380,
+    key=f"california_map_{st.session_state.selected_city}",
+    on_select="rerun",
+    selection_mode="single-object",
+    width="stretch",
+)
+selected_map_points = map_event.selection.get("objects", {}).get("cities", [])
+if selected_map_points:
+    clicked_city = selected_map_points[-1].get("city")
+    if clicked_city in LOCATIONS and clicked_city != st.session_state.last_map_city:
+        st.session_state.selected_city = clicked_city
+        st.session_state.last_map_city = clicked_city
+        st.rerun()
 
-    st.divider()
-    st.subheader("Your estimated neighborhood home value")
-    st.metric(
-        label="Estimated value",
-        value=f"${estimated_value:,.0f}",
-        help="An estimate for the neighborhood's median home value, not an individual home's price.",
+city_names = list(LOCATIONS)
+selected_city = st.selectbox(
+    "Or choose a California city",
+    city_names,
+    index=city_names.index(st.session_state.selected_city),
+    key="selected_city",
+)
+latitude, longitude = LOCATIONS[selected_city]
+st.caption(f"Your chosen place: **{selected_city}** · {latitude:.2f}, {longitude:.2f}")
+
+st.divider()
+st.subheader("2. Meet your house and dog")
+st.write("Tap the door button and watch the little door swing open.")
+if st.button(
+    "Close the front door" if st.session_state.door_open else "🚪 Open the front door",
+    type="secondary",
+    key="toggle_door",
+):
+    st.session_state.door_open = not st.session_state.door_open
+
+bedroom_column, bathroom_column, kitchen_column, floor_column = st.columns(4)
+with bedroom_column:
+    bedrooms = st.slider("🛏️ Bedrooms", 1, 6, 3, help="How many bedrooms should the house have?")
+with bathroom_column:
+    bathrooms = st.slider("🛁 Bathrooms", 1, 5, 2, help="How many bathrooms should the house have?")
+with kitchen_column:
+    kitchens = st.slider("🍳 Kitchens", 1, 3, 1, help="How many kitchens should the house have?")
+with floor_column:
+    floors = st.slider("🏠 Floors", 1, 3, 1, help="Choose the number of storeys.")
+
+st.html(
+    make_house_scene(bedrooms, bathrooms, kitchens, floors, st.session_state.door_open),
+    width="stretch",
+)
+
+st.divider()
+st.subheader("3. Add a few neighborhood details")
+st.caption(
+    "These help estimate the value of the neighborhood around your home, "
+    "not the exact selling price of this house."
+)
+income_column, age_column = st.columns(2)
+with income_column:
+    income = st.number_input(
+        "Typical yearly household income",
+        min_value=0,
+        max_value=200_000,
+        value=83_000,
+        step=1_000,
+        format="%d",
+        help="An approximate yearly income for households in this area, in dollars.",
     )
+with age_column:
+    house_age = st.number_input(
+        "Typical age of homes in this area (years)",
+        min_value=1.0,
+        max_value=100.0,
+        value=21.0,
+        step=1.0,
+    )
+
+with st.expander("If you know these neighborhood averages"):
+    population_column, occupancy_column = st.columns(2)
+    with population_column:
+        population = st.number_input(
+            "People living in a nearby area",
+            min_value=0.0,
+            max_value=40_000.0,
+            value=240.0,
+            step=10.0,
+        )
+    with occupancy_column:
+        occupancy = st.number_input(
+            "People in the average household",
+            min_value=0.01,
+            max_value=1_500.0,
+            value=2.1,
+            step=0.1,
+        )
+
+st.info(
+    "The model was trained on neighborhood averages, not individual house "
+    "layouts. Bedrooms help set an approximate bedroom/room count; bathrooms "
+    "and kitchens only contribute to a rough room-count estimate. **The number "
+    "of floors is for the animation and does not change the model prediction.**"
+)
+
+if st.button("✨ Estimate neighborhood home value", type="primary", width="stretch"):
+    model_features = build_model_features(
+        income_dollars=income,
+        house_age=house_age,
+        bedrooms=bedrooms,
+        bathrooms=bathrooms,
+        kitchens=kitchens,
+        population=population,
+        occupancy=occupancy,
+        latitude=latitude,
+        longitude=longitude,
+    )
+    prediction = float(load_model().predict(model_features)[0])
+    st.balloons()
+    st.success(f"Your neighborhood's estimated median home value: **${prediction * 100_000:,.0f}**")
     st.caption(
-        "This is a rough computer estimate, not an appraisal or guaranteed "
-        "selling price. The model's training data capped recorded values at "
-        "$500,000, so expensive-area estimates may be lower than actual prices."
+        "This is a rough educational estimate, not an appraisal. The training "
+        "data caps recorded home values at $500,000, so estimates for expensive "
+        "areas may be lower than actual prices."
     )
-
-    with st.expander("See what information went into the estimate"):
-        entered_values = dict(zip(FEATURES, values))
+    with st.expander("See what the model received"):
         st.dataframe(
-            pd.DataFrame(
-                [
-                    {"Neighborhood detail": name, "Value": value}
-                    for name, value in entered_values.items()
-                ]
+            model_features.rename(
+                columns={
+                    "MedInc": "Typical income (in $10,000s)",
+                    "HouseAge": "Typical home age (years)",
+                    "AveRooms": "Approx. rooms per household",
+                    "AveBedrms": "Approx. bedrooms per household",
+                    "Population": "Nearby population",
+                    "AveOccup": "People per household",
+                    "Latitude": "Latitude",
+                    "Longitude": "Longitude",
+                }
             ),
             hide_index=True,
             width="stretch",
         )
 
 with st.sidebar:
-    st.header("About this estimate")
+    st.header("A note about estimates")
     st.write(
-        "This tool estimates the **median home value for a neighborhood** in "
-        "California. It does not estimate the value of a specific house."
-    )
-    st.info(
-        "Neighborhood income means the typical household income for the area. "
-        "Enter the yearly amount in dollars; we'll convert it for the model."
+        "The California Housing model estimates a neighborhood's median value. "
+        "It cannot inspect a specific home or promise what it will sell for."
     )
     st.warning(
-        "The original data caps recorded home values at $500,000. Estimates "
-        "near this limit may be lower than actual prices in expensive areas."
+        "The original dataset caps recorded home values at $500,000. "
+        "High-value areas may be underestimated."
     )
-    st.caption("For learning and demonstration only — not financial advice.")
+    st.caption("For learning and demonstration only.")
