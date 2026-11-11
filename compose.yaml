@@ -1,0 +1,27 @@
+services:
+  california-housing:
+    build: .
+    image: california-housing-app:latest
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+  california-housing-api:
+    build: .
+    image: california-housing-app:latest
+    command: ["python", "app.py"]
+    environment:
+      FLASK_HOST: "0.0.0.0"
+      FLASK_PORT: "5001"
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
